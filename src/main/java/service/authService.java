@@ -4,16 +4,19 @@ import javax.jws.WebMethod;
 import javax.jws.WebService;
 import java.util.Date;
 import javax.jws.WebParam;
+import io.jsonwebtoken.Jwts;
 import com.mongodb.client.MongoClient;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import java.security.Key;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import metier.User;
 import org.bson.Document;
 import com.mongodb.client.MongoCollection;
-import org.bson.json.JsonObject;
 import org.bson.BsonValue;
-import org.bson.types.ObjectId;
 import org.mindrot.jbcrypt.BCrypt;
+import com.google.gson.Gson;
 
 import java.util.regex.Pattern;
 
@@ -39,13 +42,18 @@ public class authService {
                 String p = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
                 if(Pattern.matches(p, email)) {
                     String newHash = hashPassword(password);
+                    Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
                     User user = new User(
                             email,
                             newHash,
                             "user",
+                            "",
                             new Date(),
                             new Date()
                     );
+                    Gson gson = new Gson();
+                    String accessToken = Jwts.builder().setSubject(gson.toJson(user).toString()).signWith(key).compact();
+                    user.setAccessToken(accessToken);
                     BsonValue newUser = collection.insertOne(user.userToDocument()).getInsertedId();
                     try {
                         Document userFind = collection.find(eq("_id", newUser)).first();
