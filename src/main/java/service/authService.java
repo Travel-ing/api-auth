@@ -17,7 +17,6 @@ import com.mongodb.client.MongoCollection;
 import org.bson.BsonValue;
 import org.mindrot.jbcrypt.BCrypt;
 import com.google.gson.Gson;
-
 import java.util.regex.Pattern;
 
 import static com.mongodb.client.model.Filters.*;
@@ -42,7 +41,6 @@ public class authService {
                 String p = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
                 if(Pattern.matches(p, email)) {
                     String newHash = hashPassword(password);
-                    Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
                     User user = new User(
                             email,
                             newHash,
@@ -52,6 +50,7 @@ public class authService {
                             new Date()
                     );
                     Gson gson = new Gson();
+                    Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
                     String accessToken = Jwts.builder().setSubject(gson.toJson(user).toString()).signWith(key).compact();
                     user.setAccessToken(accessToken);
                     BsonValue newUser = collection.insertOne(user.userToDocument()).getInsertedId();
@@ -66,6 +65,7 @@ public class authService {
                 }
             }
         } catch (Exception e) {
+            System.out.println(e);
             return "Une erreur est survenue";
         }
     }
